@@ -100,6 +100,8 @@ def insertResult(db_path, sd_link):
         for an in player_data['animali']:
             spawns_for_cache.append((player, an, an == ultimo_in_campo))
     db.insertSpawns(c, progr, spawns_for_cache)
+    quadriello = [an for _, an, winconato in spawns_for_cache if winconato]
+    matching_quadriellos = db.getMatchingQuadriellos(c, progr, quadriello)
 
     winner_name = db.getPlayerFromSDName(c, winner)
     cesso_sverginato = not db.hasPokemonEverWon(c, poke_winner)
@@ -142,8 +144,25 @@ def insertResult(db_path, sd_link):
 
     leader_alert = _newSisoLeaderMessage(c, progr)
     pokemon_recap = _pokemonWinRecap(c, poke_winner)
+    quadriello_alert = _quadrielloReplayMessage(matching_quadriellos)
     db.closeDbConn(c)
-    return message, leader_alert, pokemon_recap
+    return message, leader_alert, pokemon_recap, quadriello_alert
+
+
+def _quadrielloReplayMessage(matches):
+    if not matches:
+        return None
+    links = []
+    for frigo, replay_link in matches:
+        if replay_link:
+            links.append('<a href="{}">#{}</a>'.format(html.escape(replay_link, quote=True), frigo))
+        else:
+            links.append('#{}'.format(frigo))
+    if not links:
+        return None
+    references = ', '.join(links)
+    preposition = 'nella frigo' if len(links) == 1 else 'nelle frigo'
+    return 'Fun fact: lo stesso esatto quadriello si è verificato {} {}'.format(preposition, references)
 
 
 def _pokemonWinRecap(conn, pokemon):

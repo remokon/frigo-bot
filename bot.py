@@ -58,13 +58,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, pat
     if user.username and user.username.lower() == TROLL_USERNAME:
         _troll_last_replay[user.id] = time.time()
 
-    message, leader_alert, pokemon_recap = worker.insertResult(path, update.message.text)
+    message, leader_alert, pokemon_recap, quadriello_alert = worker.insertResult(path, update.message.text)
     if message:
         await update.message.reply_text(
             message, parse_mode='HTML', reply_markup=ReplyKeyboardRemove()
         )
     if pokemon_recap:
         await update.message.reply_text(pokemon_recap, parse_mode='HTML')
+    if quadriello_alert:
+        await update.message.reply_text(quadriello_alert, parse_mode='HTML')
     if leader_alert:
         await update.message.reply_text(leader_alert, parse_mode='HTML')
     return
@@ -103,7 +105,8 @@ def is_f_message(text):
         return True
 
     # A few common affirmative replies don't need to contain the letter F.
-    return bool(re.fullmatch(r'(?:(?:io)\s+)?ci sono[.!?]*|ultima(?:\s+dai)?[.!?]*', text))
+    # Match standalone phrases/words so e.g. "siamo cotti" doesn't count as "sia".
+    return bool(re.fullmatch(r'(?:(?:io)\s+)?ci sono[.!?]*|ultima(?:\s+dai)?[.!?]*|sia[.!?]*|possibile[.!?]*', text))
 
 
 async def f_message(update: Update, context: ContextTypes.DEFAULT_TYPE):

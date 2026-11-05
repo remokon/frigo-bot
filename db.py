@@ -218,6 +218,25 @@ def insertNewFrigo(conn, progr, week, data, p1, p2, p3, p4, w, pw, sd_link, turn
     conn.commit()
 
 
+def getMatchingQuadriellos(conn, frigo, pokemon):
+    """Trova le frigo precedenti con le stesse quattro wincon, senza considerare l'ordine."""
+    if len(pokemon) != 4 or len(set(pokemon)) != 4:
+        return []
+    cur = conn.execute(
+        """SELECT f.progr, f.replay_link
+           FROM frigos f
+           JOIN spawns s ON s.frigo=f.progr AND s.winconato=1
+           WHERE f.progr < ?
+           GROUP BY f.progr, f.replay_link
+           HAVING COUNT(*)=4
+              AND COUNT(DISTINCT s.spawn)=4
+              AND SUM(CASE WHEN s.spawn IN (?, ?, ?, ?) THEN 1 ELSE 0 END)=4
+           ORDER BY f.progr""",
+        (frigo, *pokemon),
+    )
+    return cur.fetchall()
+
+
 def insertSpawns(conn, f_nr, spawns):
     """Insert a match's spawn rows together to avoid one commit per Pokémon."""
     conn.executemany(
