@@ -1765,6 +1765,15 @@ def closeWeek(db_path):
 
     db.closeweek(conn, actual_w, data_today)
 
+    # Count unicums before the transition: closeweek marks the old week ended,
+    # but does not itself change match history, so compare against state before
+    # applying any close-week bookkeeping that could affect these counts.
+    players_all = db.getAllPlayers(conn)
+    unicums_before = {
+        player for player in players_all
+        if db.getUnicumByPlayer(conn, player)[0]
+    }
+
     # dump calippo
     players, vinte, partecipate = db.getPlayerLeaderboard(conn, week=actual_w)
 
@@ -1778,6 +1787,11 @@ def closeWeek(db_path):
     db.insertCalippo(conn, actual_w, calippo, vinte[0])
 
     db.newweek(conn, actual_w + 1, data_today)
+
+    unicums_lost = [
+        player for player in players_all
+        if player in unicums_before and not db.getUnicumByPlayer(conn, player)[0]
+    ]
 
     # most pig
     most_pig = players[0]
@@ -1846,6 +1860,9 @@ def closeWeek(db_path):
     message = message + 'rispetto a settimana <code>{}</code>\n\n'.format(w[-2])
     message = message + '👟 Maggior contribuente: {} (<code>{}</code>)'.format(players[partecipate.index(max(partecipate))],
                                                                       max(partecipate))
+
+    for player in unicums_lost:
+        message += '\n\nIl povero frigante a nome di {} è stato condannato all’oblio perdendo ogni unicum 👋'.format(player)
 
     db.closeDbConn(conn)
     return message
@@ -1937,6 +1954,11 @@ def UniciPlayer(player, db_path):
         return "non conosco questo {}".format(player)
 
     animali, wins = db.getUnicumByPlayer(c, top_similar)
+    if not animali:
+        message = 'Per sempre nell’oblio' if top_similar.lower() == 'defava' else 'Ma figurati se ha unicum questo porco'
+        db.closeDbConn(c)
+        return message
+
     message = 'Unici di {}: <code>{}</code>\n\n'.format(top_similar, len(animali))
     message = message + ', '.join(
         '{} (<code>{}</code>)'.format(animali[i], wins[i]) if wins[i] > 1 else animali[i]
