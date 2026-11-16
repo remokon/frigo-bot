@@ -1106,18 +1106,21 @@ def svergiconvertersRanking(db_path):
     conn = db.openDbConn(db_path)
     players = db.getAllPlayers(conn)
     results = []
+    total_frigos = db.getNumberOfFrigos(conn)
+    min_games = total_frigos * 0.02
     for p in players:
         tentativi, vinte = db.getCessiWinconByPlayer(conn, p)
         if tentativi > 0:
             _, winners_whenPlayed = db.getPlayerInfo(conn, p)
-            if len(winners_whenPlayed) < MIN_GAMES_FOR_RANKING:
+            giocate = len(winners_whenPlayed)
+            if giocate < min_games:
                 continue
-            results.append((p, vinte, tentativi, vinte / tentativi * 100, len(winners_whenPlayed)))
+            results.append((p, vinte, tentativi, vinte / tentativi * 100, giocate))
     db.closeDbConn(conn)
 
     results.sort(key=lambda x: x[3], reverse=True)
 
-    message = 'Svergiconversione Ranking\n(sverginate / frigo cessi winconati — frigo giocate)\n\n'
+    message = 'Svergiconversione Ranking\n(sverginate / frigo cessi winconati — frigo giocate; minimo 2% frigo giocate)\n\n'
 
     rank_width = len(str(len(results)))
     name_width = _capped_name_width(player for player, _, _, _, _ in results)
@@ -1137,19 +1140,22 @@ def svergitryersRanking(db_path):
     conn = db.openDbConn(db_path)
     players = db.getAllPlayers(conn)
     results = []
+    total_frigos = db.getNumberOfFrigos(conn)
+    min_games = total_frigos * 0.02
     for p in players:
         tentativi, vinte = db.getCessiWinconByPlayer(conn, p)
         cessi_spawnati = db.getCessiSpawnsByPlayer(conn, p)
         if cessi_spawnati > 0:
             _, winners_whenPlayed = db.getPlayerInfo(conn, p)
-            if len(winners_whenPlayed) < MIN_GAMES_FOR_RANKING:
+            giocate = len(winners_whenPlayed)
+            if giocate < min_games:
                 continue
             results.append((p, vinte, tentativi, cessi_spawnati, tentativi / cessi_spawnati * 100))
     db.closeDbConn(conn)
 
     results.sort(key=lambda x: x[4], reverse=True)
 
-    message = 'Svergitentativi Ranking\n(frigo cessi winconati / frigo cessi spawnati, sverginate)\n\n'
+    message = 'Svergitentativi Ranking\n(frigo cessi winconati / frigo cessi spawnati, sverginate; minimo 2% frigo giocate)\n\n'
 
     rank_width = len(str(len(results)))
     name_width = _capped_name_width(player for player, _, _, _, _ in results)
