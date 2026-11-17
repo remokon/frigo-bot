@@ -74,10 +74,10 @@ def elab_sd_replay(link_replay):
     response.raise_for_status()
     data = response.json()
 
-    players = {'p1': {'collo': None, 'animali': [], 'ultimo_in_campo': None},
-               'p2': {'collo': None, 'animali': [], 'ultimo_in_campo': None},
-               'p3': {'collo': None, 'animali': [], 'ultimo_in_campo': None},
-               'p4': {'collo': None, 'animali': [], 'ultimo_in_campo': None}
+    players = {'p1': {'collo': None, 'animali': {}, 'ultimo_in_campo': None},
+               'p2': {'collo': None, 'animali': {}, 'ultimo_in_campo': None},
+               'p3': {'collo': None, 'animali': {}, 'ultimo_in_campo': None},
+               'p4': {'collo': None, 'animali': {}, 'ultimo_in_campo': None}
                }
 
     log_rows = data['log'].split('\n')
@@ -97,12 +97,14 @@ def elab_sd_replay(link_replay):
         # individuazione animale (e tracciamento dell'ultimo animale mandato in
         # campo da ogni giocatore, per capire con chi ha tentato il wincon anche
         # in caso di forfeit)
+        # Store all encountered species; shiny metadata is independent for each
+        # individual species and updated if the same species is switched in again.
         if log_i.startswith('|switch|') or log_i.startswith('|drag|') or log_i.startswith('|replace|'):
             pid = log_i.split('|')[2][:2]
-            animale = log_i.split('|')[3].split(',')[0]
-            animale = get_clean_mon_name(animale)
-            if animale not in players[pid]['animali']:
-                players[pid]['animali'].append(animale)
+            details = log_i.split('|')[3].split(',')
+            animale = get_clean_mon_name(details[0])
+            is_shiny = 'shiny' in {detail.strip().lower() for detail in details[1:]}
+            players[pid]['animali'][animale] = players[pid]['animali'].get(animale, False) or is_shiny
             players[pid]['ultimo_in_campo'] = animale
 
         if log_i.startswith('|win|'):

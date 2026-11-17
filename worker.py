@@ -97,10 +97,10 @@ def insertResult(db_path, sd_link):
     for player_data in players.values():
         player = player_data['id']
         ultimo_in_campo = player_data['ultimo_in_campo']
-        for an in player_data['animali']:
-            spawns_for_cache.append((player, an, an == ultimo_in_campo))
+        for an, is_shiny in player_data['animali'].items():
+            spawns_for_cache.append((player, an, an == ultimo_in_campo, is_shiny))
     db.insertSpawns(c, progr, spawns_for_cache)
-    quadriello = [an for _, an, winconato in spawns_for_cache if winconato]
+    quadriello = [an for _, an, winconato, _ in spawns_for_cache if winconato]
     matching_quadriellos = db.getMatchingQuadriellos(c, progr, quadriello)
 
     winner_name = db.getPlayerFromSDName(c, winner)

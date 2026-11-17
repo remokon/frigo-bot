@@ -9,6 +9,7 @@ def openDbConn(dbpath):
     ensureFrigosSchema(conn)
     ensureSeasonDatesSchema(conn)
     ensureCommandLogSchema(conn)
+    ensureSpawnsSchema(conn)
     conn.commit()
     return conn
 
@@ -30,6 +31,13 @@ def ensureFrigosSchema(conn):
         conn.execute("ALTER TABLE frigos ADD COLUMN end_time INTEGER")
     if 'duration' not in cols:
         conn.execute("ALTER TABLE frigos ADD COLUMN duration TEXT")
+
+
+def ensureSpawnsSchema(conn):
+    """Add the shiny flag to existing spawn tables when necessary."""
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(spawns)")]
+    if 'is_shiny' not in cols:
+        conn.execute("ALTER TABLE spawns ADD COLUMN is_shiny INTEGER NOT NULL DEFAULT 0")
 
 
 def closeDbConn(conn):
@@ -130,7 +138,8 @@ def updateStatsCacheForFrigo(conn, progr, week, participants, spawns, winner, po
     if known_first_wins is None:
         known_first_wins = {row[0] for row in cur.execute("SELECT mon FROM mon_first_win")}
     cessi_players = set()
-    for player, mon, winconato in spawns:
+    for spawn_row in spawns:
+        player, mon, winconato = spawn_row[:3]
         is_cesso = mon not in known_first_wins
         if is_cesso:
             cessi_players.add(player)
@@ -238,18 +247,31 @@ def getMatchingQuadriellos(conn, frigo, pokemon):
 
 
 def insertSpawns(conn, f_nr, spawns):
-    """Insert a match's spawn rows together to avoid one commit per Pokémon."""
+    """Insert a match's spawn rows together to avoid one commit per Pokémon.
+
+    Each entry is (player, mon, winconato[, is_shiny]).
+    """
     conn.executemany(
-        "INSERT INTO spawns (frigo, player, spawn, winconato) VALUES (?, ?, ?, ?)",
-        ((f_nr, player, spawn, int(winconato))
-         for player, spawn, winconato in spawns),
+        "INSERT INTO spawns (frigo, player, spawn, winconato, is_shiny) VALUES (?, ?, ?, ?, ?)",
+        ((f_nr, player, spawn, int(winconato), int(is_shiny))
+         for player, spawn, winconato, is_shiny in _normalizeSpawnRows(spawns)),
     )
     conn.commit()
 
 
-def insertSpawn(conn, f_nr, player, spawn, winconato=False):
-    conn.execute("INSERT INTO spawns (frigo,player,spawn,winconato) VALUES (?,?,?,?)",
-                 (f_nr, player, spawn, int(winconato)))
+def _normalizeSpawnRows(spawns):
+    for row in spawns:
+        if len(row) == 3:
+            player, spawn, winconato = row
+            is_shiny = False
+        else:
+            player, spawn, winconato, is_shiny = row
+        yield player, spawn, winconato, is_shiny
+
+
+def insertSpawn(conn, f_nr, player, spawn, winconato=False, is_shiny=False):
+    conn.execute("INSERT INTO spawns (frigo,player,spawn,winconato,is_shiny) VALUES (?,?,?,?,?)",
+                 (f_nr, player, spawn, int(winconato), int(is_shiny)))
     conn.commit()
 
 
