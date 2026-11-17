@@ -425,6 +425,40 @@ def getWinconsForFrigo(conn, frigo_nr):
     return cur.fetchall()
 
 
+def getShinyWins(conn):
+    """Frigo vinte con un Pokemon shiny, con i dettagli del replay."""
+    cur = conn.cursor()
+    cur.execute('''SELECT f.progr, f.winner, f.pokewinner, f.replay_link
+        FROM frigos f
+        JOIN spawns s ON s.frigo=f.progr AND s.player=f.winner
+                     AND s.spawn=f.pokewinner AND s.is_shiny=1
+        ORDER BY f.progr''')
+    return cur.fetchall()
+
+
+def getShinyStatsByPlayer(conn, player):
+    """Conteggio shiny spawnati, winconati e usati per vincere."""
+    cur = conn.cursor()
+    cur.execute('''SELECT COUNT(*),
+            SUM(CASE WHEN s.winconato=1 THEN 1 ELSE 0 END),
+            SUM(CASE WHEN f.winner=s.player AND f.pokewinner=s.spawn THEN 1 ELSE 0 END)
+        FROM spawns s
+        JOIN frigos f ON f.progr=s.frigo
+        WHERE s.player=? AND s.is_shiny=1''', (player,))
+    return cur.fetchone()
+
+
+def getShinyWinsByPlayer(conn, player):
+    """Replay vinti dal giocatore usando il suo Pokemon shiny."""
+    cur = conn.cursor()
+    cur.execute('''SELECT f.progr, f.pokewinner, f.replay_link
+        FROM frigos f
+        JOIN spawns s ON s.frigo=f.progr AND s.player=f.winner
+                     AND s.spawn=f.pokewinner AND s.is_shiny=1
+        WHERE f.winner=? ORDER BY f.progr''', (player,))
+    return cur.fetchall()
+
+
 def getFrigoInfoFromNumber(conn, frigo_nr):
     cur = conn.cursor()
     cur.execute("SELECT * FROM frigos WHERE progr=?", (frigo_nr,))

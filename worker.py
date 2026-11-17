@@ -1232,6 +1232,55 @@ def edginessRanking(db_path):
     return message
 
 
+def shinyStats(player, db_path):
+    conn = db.openDbConn(db_path)
+    top_player = None
+    top_similarity = 0
+    for candidate in db.getAllPlayers(conn):
+        similarity = difflib.SequenceMatcher(a=player.lower(), b=candidate.lower()).ratio()
+        if similarity > 0.7 and similarity > top_similarity:
+            top_player = candidate
+            top_similarity = similarity
+
+    if not top_player:
+        db.closeDbConn(conn)
+        return 'chi cazz\'è <code>{}</code> oh'.format(html.escape(player))
+
+    total, winconed, wins = db.getShinyStatsByPlayer(conn, top_player)
+    wins_with_links = db.getShinyWinsByPlayer(conn, top_player)
+    db.closeDbConn(conn)
+    total, winconed, wins = total or 0, winconed or 0, wins or 0
+    message = '<b>Shiny di {}</b>\nSpawnati: <code>{}</code>\nWinconati: <code>{}</code>\nVittorie con shiny: <code>{}</code>'.format(
+        html.escape(top_player), total, winconed, wins
+    )
+    if wins_with_links:
+        message += '\n\nVittorie:'
+        for frigo, pokemon, link in wins_with_links:
+            pokemon = html.escape(pokemon)
+            if link:
+                match = '<a href="{}">#{} - {}</a>'.format(html.escape(link, quote=True), frigo, pokemon)
+            else:
+                match = '#{} - {}'.format(frigo, pokemon)
+            message += '\n' + match
+    return message
+
+
+def shinyWins(db_path):
+    conn = db.openDbConn(db_path)
+    wins = db.getShinyWins(conn)
+    db.closeDbConn(conn)
+    if not wins:
+        return 'Ancuna vittoria con shiny registrata, che fortuna sprecata.'
+
+    message = 'Vittorie registrate con un Pokémon shiny:\n'
+    for frigo, player, pokemon, link in wins:
+        row = 'Frigo #{} — {} con {}'.format(frigo, html.escape(player), html.escape(pokemon))
+        if link:
+            row = '<a href="{}">{}</a>'.format(html.escape(link, quote=True), row)
+        message += '\n' + row
+    return message
+
+
 def spawnRanking(animale, db_path, min_games=0):
     '''Top 3 giocatori per numero di spawn e percentuale, con filtro opzionale sulle frigo giocate.'''
     conn = db.openDbConn(db_path)

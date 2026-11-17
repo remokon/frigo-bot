@@ -456,6 +456,17 @@ async def animale_command(update: Update, context: ContextTypes.DEFAULT_TYPE, pa
         return
 
 
+async def sini_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
+    if context.args:
+        message = worker.shinyStats(' '.join(context.args), path)
+    else:
+        message = worker.shinyWins(path)
+    await update.message.reply_text(
+        message, parse_mode='HTML', reply_markup=ReplyKeyboardRemove()
+    )
+    return
+
+
 async def spawn_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
     arguments = update.message.text.partition(' ')[2].strip()
     parts = arguments.rsplit(maxsplit=1)
@@ -680,6 +691,7 @@ COMMAND_SECTIONS = [
         ("animale &lt;nome&gt;", "statistiche su un animale"),
         ("coppia &lt;giocatore&gt;,&lt;pokemon&gt;", "statistiche di un giocatore con un animale"),
         ("spawn &lt;animale&gt; [min_frigo]", "top giocatori per spawn assoluti e percentuali di un animale, filtrabili per frigo minime"),
+        ("sini [giocatore]", "vittorie con Pokémon shiny; per giocatore mostra spawn, wincon e vittorie shiny"),
         ("wincons", "animali più winconati"),
         ("cessi", "animali da sverginare"),
         ("desaparecidos", "animali che non spawnano da più tempo"),
@@ -901,6 +913,7 @@ def start_bot(token, db_path):
     c_animale = CommandHandler("animale", partial(animale_command, path=db_path))
     c_coppia = CommandHandler("coppia", partial(coppia_command, path=db_path))
     c_spawn = CommandHandler("spawn", partial(spawn_command, path=db_path))
+    c_sini = CommandHandler("sini", partial(sini_command, path=db_path))
     c_global = CommandHandler("global", partial(global_rank_command, path=db_path))
 
     c_query = CommandHandler("query", partial(query_command, path=db_path))
@@ -972,6 +985,7 @@ def start_bot(token, db_path):
     application.add_handler(c_animale)
     application.add_handler(c_coppia)
     application.add_handler(c_spawn)
+    application.add_handler(c_sini)
     application.add_handler(c_global)
     application.add_handler(c_frigo)
     application.add_handler(c_pl)
