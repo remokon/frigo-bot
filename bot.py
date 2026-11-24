@@ -1,4 +1,5 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram.constants import ChatType
 from telegram.ext import (
     Application,
     ApplicationHandlerStop,
@@ -74,7 +75,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE, pat
 
 async def troll_guard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    if not user or not user.username or user.username.lower() != TROLL_USERNAME:
+    private = update.effective_chat.type == ChatType.PRIVATE
+    if not user or not user.username or user.username.lower() != TROLL_USERNAME or private:
         # only the troll user is subject to this guard; everyone else is unaffected
         return
 
