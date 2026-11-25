@@ -1548,6 +1548,7 @@ def playerCard(player, db_path):
     total_games_threshold = db.getNumberOfFrigos(conn) * 0.02
     for p in players:
         p_num_wins, p_winners_whenPlayed = db.getPlayerInfo(conn, p)
+        p_winsWhenPlayed = sum(1 for winner in p_winners_whenPlayed if winner == p)
         p_winrate = (p_winsWhenPlayed / len(p_winners_whenPlayed)) * 100 if len(p_winners_whenPlayed) > 0 else 0
         p_marvwr = logics.calcMarvWr(len(p_winners_whenPlayed), p_winsWhenPlayed, total_frigos_from_reg)
         p_animali_unici, _ = db.getUnicumByPlayer(conn, p)
