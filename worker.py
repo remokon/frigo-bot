@@ -1653,7 +1653,7 @@ def playerCard(player, db_path):
         message = message[:-2]
     
     if not player_is_eligible:
-        message += '\n*quota minima di frigo per i ranking non raggiunta'
+        message += '\n<i>*quota minima di frigo per i ranking non raggiunta</i>'
     
     return message
 
