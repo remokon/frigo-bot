@@ -1636,9 +1636,6 @@ def playerCard(player, db_path):
     pk, cnts = db.getMostPokeWinnerByPlayer(conn, top_similar)
     db.closeDbConn(conn)
 
-    if not player_is_eligible:
-        message += '\n*quota minima di frigo per i ranking non raggiunta'
-
     cnt_i = cnts[0]
     message = message + "\nAmici Vincenti:\n\t\t[<code>{}</code>]: ".format(cnt_i)
 
@@ -1654,6 +1651,10 @@ def playerCard(player, db_path):
 
     if 'Amici Vincenti' in message:
         message = message[:-2]
+    
+    if not player_is_eligible:
+        message += '\n*quota minima di frigo per i ranking non raggiunta'
+    
     return message
 
 
