@@ -1539,6 +1539,7 @@ def playerCard(player, db_path):
     all_swing = []
     all_animali_unici = []
     all_cessi_wr = []
+    eligible_for_rankings = {}
 
     num_wins = winners_whenPlayed = winsWhenPlayed = winrate_perc = None
     marvWr = animali_unici = winrate_variability = None
@@ -1557,7 +1558,8 @@ def playerCard(player, db_path):
         all_wins.append(p_num_wins)
         all_marvwr.append(p_marvwr)
         all_animali_unici.append(len(p_animali_unici))
-        if len(p_winners_whenPlayed) >= total_games_threshold:
+        eligible_for_rankings[p] = len(p_winners_whenPlayed) >= total_games_threshold
+        if eligible_for_rankings[p]:
             all_winrates.append(p_winrate)
             if p_swing is not None:
                 all_swing.append(p_swing['score'])
@@ -1576,29 +1578,33 @@ def playerCard(player, db_path):
             cessi_vinte = p_cessi_vinte
 
     num_distinct_pk = db.getDistinctPokeByPlayer(conn, top_similar)
+    player_is_eligible = eligible_for_rankings[top_similar]
+
+    def player_rank(value, ranked_values):
+        return _formatRank(value, ranked_values) if player_is_eligible else ' (*)'
 
     message = f"<b>{top_similar}</b>\n\n"
-    message = message + 'Frigo vinte overall <code>{}</code>{}\n'.format(num_wins, _formatRank(num_wins, all_wins))
-    message = message + 'Winrate <code>{0:.2f}%</code>{1} '.format(winrate_perc, _formatRank(winrate_perc, all_winrates))
+    message = message + 'Frigo vinte overall <code>{}</code>{}\n'.format(num_wins, player_rank(num_wins, all_wins))
+    message = message + 'Winrate <code>{0:.2f}%</code>{1} '.format(winrate_perc, player_rank(winrate_perc, all_winrates))
 
     message = message + '(<code>{}</code>/<code>{}</code> su <code>{}</code> registrate)\n'.format(
         winsWhenPlayed, len(winners_whenPlayed), db.getNumFrigoWithPlayersSpecified(conn)
     )
 
-    message = message + 'MarvWr Score: <code>{}</code>{} '.format(marvWr, _formatRank(marvWr, all_marvwr))
+    message = message + 'MarvWr Score: <code>{}</code>{} '.format(marvWr, player_rank(marvWr, all_marvwr))
 
     if winrate_variability is None:
         message = message + '\n→ SwingScore: n/d (dati non sufizienti)\n'
     else:
         message = message + '\n→ SwingScore: <code>{}</code>{} (EWR <code>{:.1f}%</code> ± <code>{:.1f}</code>)\n'.format(
-            winrate_variability['score'], _formatRank(winrate_variability['score'], all_swing),
+            winrate_variability['score'], player_rank(winrate_variability['score'], all_swing),
             winrate_variability['mean_wr'], winrate_variability['true_stdev']
         )
 
     message = message + '\nDistinto al <code>{0:.1f}%</code>'.format(num_distinct_pk * 100 / num_wins)
     message = message + ' con <code>{}</code> distinti animali\n'.format(num_distinct_pk)
     message = message + 'Animali Unici: <code>{}</code>{}\n'.format(
-        len(animali_unici), _formatRank(len(animali_unici), all_animali_unici)
+        len(animali_unici), player_rank(len(animali_unici), all_animali_unici)
     )
 
     if cessi_tentativi == 0:
@@ -1606,7 +1612,7 @@ def playerCard(player, db_path):
     else:
         cessi_wr = cessi_vinte / cessi_tentativi * 100
         message = message + 'Svergiconversione: <code>{0:.1f}%</code>{1} (<code>{2}</code> su <code>{3}</code> tentativi)\n\n'.format(
-            cessi_wr, _formatRank(cessi_wr, all_cessi_wr), cessi_vinte, cessi_tentativi
+            cessi_wr, player_rank(cessi_wr, all_cessi_wr), cessi_vinte, cessi_tentativi
         )
 
     affettiva_mon, affettiva_wincon_cnt, affettiva_spawn_cnt = db.getPreferredWinconByPlayer(conn, top_similar)
@@ -1628,6 +1634,9 @@ def playerCard(player, db_path):
 
     pk, cnts = db.getMostPokeWinnerByPlayer(conn, top_similar)
     db.closeDbConn(conn)
+
+    if not player_is_eligible:
+        message += '\n*quota minima di frigo per i ranking non raggiunta'
 
     cnt_i = cnts[0]
     message = message + "\nAmici Vincenti:\n\t\t[<code>{}</code>]: ".format(cnt_i)
