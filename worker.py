@@ -383,11 +383,12 @@ def rank_winrate(db_path, include_occasional=False):
     rank_width = len(str(len(rows)))
     name_width = min(8, max((len(player) for player, _, _ in rows), default=0))
     games_width = max((len(str(games)) for _, _, games in rows), default=1)
+    wins_width = min(3, max((len(str(wins)) for _, wins, _ in rows), default=1))
     for rank, (player, wins, games) in enumerate(rows, 1):
         display_name = player[:8]
         message += '<code>{:>{}}) {:<{}} {:>5.1f}% [{:>{}}/{:>{}}]</code>\n'.format(
             rank, rank_width, html.escape(display_name), name_width,
-            wins * 100 / games, wins, games_width, games, games_width
+            wins * 100 / games, wins, wins_width, games, games_width
         )
     if not rows:
         return 'Nessun giocatore raggiunge il minimo del 2% delle frigo giocate.'
