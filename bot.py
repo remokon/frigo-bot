@@ -142,6 +142,15 @@ async def f_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
 
+async def winrate_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
+    include_occasional = bool(context.args and context.args[0].lower() in ('all', 'tutti'))
+    await update.message.reply_text(
+        worker.rank_winrate(path, include_occasional), parse_mode='HTML',
+        reply_markup=ReplyKeyboardRemove()
+    )
+    return
+
+
 async def global_rank_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
     await update.message.reply_text(
         worker.rank_all(path), parse_mode='HTML', reply_markup=ReplyKeyboardRemove()
@@ -679,11 +688,12 @@ COMMAND_SECTIONS = [
     ("📊 Classifiche", [
         ("week", "classifica settimana in corso"),
         ("global", "classifica all time"),
+        ("winrate", "classifica giocatori per winrate (minimo 2% delle frigo giocate; /winrate all include gli occasionali)"),
         ("season / siso [numero|nome]", "classifica stagione in corso; con numero o nome mostra risultato e grafico di una siso"),
         ("sisos", "albo d'oro delle siso"),
         ("score", "classifica per punteggio MarvWr"),
         ("califfi", "albo d'oro califfi"),
-        ("swingers", "giocatori più altalenanti di settimana in settimana"),
+        ("swingers", "giocatori più altalenanti di settimana in settimana (minimo 2% delle frigo giocate)"),
         ("winstreaks", "top 5 win streak di sempre, con replay"),
         ("losestreaks", "top 5 lose streak di sempre"),
     ]),
@@ -710,7 +720,7 @@ COMMAND_SECTIONS = [
         ("secchezza &lt;nome&gt;", "da quante frigo non vince"),
         ("svergiconverters", "classifica conversione cessi winconati"),
         ("svergitryers", "classifica tentativi su cessi spawnati"),
-        ("edgy", "classifica edginess"),
+        ("chinotto", "classifica «fuori dal coro» (minimo 2% delle frigo giocate)"),
     ]),
     ("🧊 Altro", [
         ("frigo &lt;numero&gt;", "dettagli di una frigo specifica"),
@@ -860,7 +870,7 @@ async def forma_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path
     return
 
 
-async def edgy_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
+async def chinotto_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
     await update.message.reply_text(
         worker.edginessRanking(path), parse_mode='HTML', reply_markup=ReplyKeyboardRemove()
     )
@@ -916,6 +926,7 @@ def start_bot(token, db_path):
     c_coppia = CommandHandler("coppia", partial(coppia_command, path=db_path))
     c_spawn = CommandHandler("spawn", partial(spawn_command, path=db_path))
     c_sini = CommandHandler("sini", partial(sini_command, path=db_path))
+    c_winrate = CommandHandler("winrate", partial(winrate_command, path=db_path))
     c_global = CommandHandler("global", partial(global_rank_command, path=db_path))
 
     c_query = CommandHandler("query", partial(query_command, path=db_path))
@@ -963,7 +974,7 @@ def start_bot(token, db_path):
 
     c_svergiconverters = CommandHandler("svergiconverters", partial(svergiconverters_command, path=db_path))
     c_svergitryers = CommandHandler("svergitryers", partial(svergitryers_command, path=db_path))
-    c_edgy = CommandHandler("edgy", partial(edgy_command, path=db_path))
+    c_chinotto = CommandHandler("chinotto", partial(chinotto_command, path=db_path))
     c_forma = CommandHandler("forma", partial(forma_command, path=db_path))
     c_winstreaks = CommandHandler("winstreaks", partial(winstreaks_command, path=db_path))
     c_losestreaks = CommandHandler("losestreaks", partial(losestreaks_command, path=db_path))
@@ -988,6 +999,7 @@ def start_bot(token, db_path):
     application.add_handler(c_coppia)
     application.add_handler(c_spawn)
     application.add_handler(c_sini)
+    application.add_handler(c_winrate)
     application.add_handler(c_global)
     application.add_handler(c_frigo)
     application.add_handler(c_pl)
@@ -1017,7 +1029,7 @@ def start_bot(token, db_path):
     application.add_handler(c_wincons)
     application.add_handler(c_svergiconverters)
     application.add_handler(c_svergitryers)
-    application.add_handler(c_edgy)
+    application.add_handler(c_chinotto)
     application.add_handler(c_forma)
     application.add_handler(c_winstreaks)
     application.add_handler(c_losestreaks)

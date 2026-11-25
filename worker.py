@@ -11,7 +11,6 @@ import logics
 import replay_reader
 
 MAX_RANKING_NAME_WIDTH = 10
-MIN_GAMES_FOR_RANKING = 10
 
 EDGY_CESSO_BONUS = 15
 EDGY_RARE_BASE = 6
@@ -361,6 +360,37 @@ def frigoInfoForMon(animale, db_path):
         return "che frigo vuoi vedere che è ancora un cesso"
 
     return frigoInfo(last_frigo_nr, db_path)
+
+
+def rank_winrate(db_path, include_occasional=False):
+    conn = db.openDbConn(db_path)
+    try:
+        results = db.getPlayerFormResults(conn)
+        total_frigos = db.getNumberOfFrigos(conn)
+    finally:
+        db.closeDbConn(conn)
+    min_games = total_frigos * 0.02
+    rows = [
+        (player, sum(1 for _, won in history if won), len(history))
+        for player, history in results.items()
+        if history and (include_occasional or len(history) >= min_games)
+    ]
+    rows.sort(key=lambda row: (-row[1] / row[2], -row[2], row[0].lower()))
+
+    message = 'Classifica Winrate\n(min 2% frigo giocate){}\n\n'.format(
+        ' (inclusi gli occasionali)' if include_occasional else ''
+    )
+    rank_width = len(str(len(rows)))
+    name_width = max((len(player) for player, _, _ in rows), default=0)
+    games_width = max((len(str(games)) for _, _, games in rows), default=1)
+    for rank, (player, wins, games) in enumerate(rows, 1):
+        message += '<code>{:>{}}) {:<{}} {:>5.1f}%  [{:>{}}/{:>{}}]</code>\n'.format(
+            rank, rank_width, html.escape(player), name_width,
+            wins * 100 / games, wins, games_width, games, games_width
+        )
+    if not rows:
+        return 'Nessun giocatore raggiunge il minimo del 2% delle frigo giocate.'
+    return message
 
 
 def rank_all(db_path):
@@ -1075,11 +1105,12 @@ def global_score(path):
 
 def swingRanking(db_path):
     conn = db.openDbConn(db_path)
+    total_frigos = db.getNumberOfFrigos(conn)
     players = db.getAllPlayers(conn)
     results = []
     for p in players:
         weekly_games, weekly_wins = db.getWeeklyGamesAndWinsByPlayer(conn, p)
-        if sum(weekly_games) < MIN_GAMES_FOR_RANKING:
+        if sum(weekly_games) < total_frigos * 0.02:
             continue
         swing = logics.calcWinrateVariability(weekly_games, weekly_wins)
         if swing is not None:
@@ -1184,8 +1215,7 @@ def edginessRanking(db_path):
         -EDGY_POPULAR_PENALTY_MAX (unica formula continua, niente doppio conteggio
         con il bonus cesso).
     Il punteggio totale è renormalizzato sul numero di frigo giocate (serve un
-    minimo di MIN_GAMES_FOR_RANKING per entrare in classifica, come le altre
-    ranking).'''
+    minimo di almeno il 2% delle frigo registrate per entrare in classifica).'''
     conn = db.openDbConn(db_path)
 
     popularity = {}
@@ -1196,11 +1226,12 @@ def edginessRanking(db_path):
         max_popularity = max(max_popularity, pop)
 
     players = db.getAllPlayers(conn)
+    total_frigos = db.getNumberOfFrigos(conn)
     results = []
     for p in players:
         _, winners_whenPlayed = db.getPlayerInfo(conn, p)
         games = len(winners_whenPlayed)
-        if games < MIN_GAMES_FOR_RANKING:
+        if games < total_frigos * 0.02:
             continue
 
         cesso_tentativi, _ = db.getCessiWinconByPlayer(conn, p)
@@ -1513,9 +1544,9 @@ def playerCard(player, db_path):
     marvWr = animali_unici = winrate_variability = None
     cessi_tentativi = cessi_vinte = None
 
+    total_games_threshold = db.getNumberOfFrigos(conn) * 0.02
     for p in players:
         p_num_wins, p_winners_whenPlayed = db.getPlayerInfo(conn, p)
-        p_winsWhenPlayed = len([j for j in p_winners_whenPlayed if j == p])
         p_winrate = (p_winsWhenPlayed / len(p_winners_whenPlayed)) * 100 if len(p_winners_whenPlayed) > 0 else 0
         p_marvwr = logics.calcMarvWr(len(p_winners_whenPlayed), p_winsWhenPlayed, total_frigos_from_reg)
         p_animali_unici, _ = db.getUnicumByPlayer(conn, p)
@@ -1526,7 +1557,7 @@ def playerCard(player, db_path):
         all_wins.append(p_num_wins)
         all_marvwr.append(p_marvwr)
         all_animali_unici.append(len(p_animali_unici))
-        if len(p_winners_whenPlayed) >= MIN_GAMES_FOR_RANKING:
+        if len(p_winners_whenPlayed) >= total_games_threshold:
             all_winrates.append(p_winrate)
             if p_swing is not None:
                 all_swing.append(p_swing['score'])
