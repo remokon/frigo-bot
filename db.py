@@ -1246,6 +1246,13 @@ def getStolenUnicumsFromPlayer(conn, player):
           )
           AND stolen.progr > original.progr
           AND stolen.winner != original.winner
+          AND stolen.progr=(
+              SELECT MIN(first_stolen.progr)
+              FROM frigos first_stolen
+              WHERE first_stolen.pokewinner=original.pokewinner
+                AND first_stolen.progr > original.progr
+                AND first_stolen.winner != original.winner
+          )
         ORDER BY stolen.progr
     ''', (player,))
     return cur.fetchall()
