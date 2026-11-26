@@ -1231,6 +1231,26 @@ def getPokemonWinningPlayers(conn, pokemon):
     return [row[0] for row in cur.fetchall()]
 
 
+def getStolenUnicumsFromPlayer(conn, player):
+    """Return (thief, Pokémon) pairs for this player's unicums later won by others."""
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT stolen.winner, stolen.pokewinner
+        FROM frigos original
+        JOIN frigos stolen ON stolen.pokewinner = original.pokewinner
+        WHERE original.winner=?
+          AND original.progr=(
+              SELECT MIN(first.progr)
+              FROM frigos first
+              WHERE first.pokewinner=original.pokewinner
+          )
+          AND stolen.progr > original.progr
+          AND stolen.winner != original.winner
+        ORDER BY stolen.progr
+    ''', (player,))
+    return cur.fetchall()
+
+
 def getStolenUnicumsByPlayer(conn, player):
     """Return (former_owner, Pokémon) pairs stolen by player in chronological order."""
     cur = conn.cursor()

@@ -2015,7 +2015,7 @@ def LadratoPlayer(player, db_path):
         db.closeDbConn(conn)
         return 'non conosco questo {}'.format(html.escape(player))
 
-    stolen = db.getStolenUnicumsByPlayer(conn, top_similar)
+    stolen = db.getStolenUnicumsFromPlayer(conn, top_similar)
     db.closeDbConn(conn)
     if not stolen:
         return '{} non gli hanno ancora rubato nessun unicum'.format(html.escape(top_similar))
