@@ -1993,7 +1993,7 @@ def LadronePlayer(player, db_path):
 
     message = 'Unicum rubati da <b>{}</b>:'.format(html.escape(top_similar))
     for owner, pokemon in by_owner.items():
-        message += '\\n\\n<b>{}</b>: {}'.format(
+        message += '\n\n<b>{}</b>: {}'.format(
             html.escape(owner), ', '.join(html.escape(mon) for mon in pokemon)
         )
     return message
@@ -2005,15 +2005,15 @@ def LadderLadrismo(db_path):
     db.closeDbConn(conn)
 
     total = sum(count for _, count in results)
-    message = 'Ladrismo — unicum rubati (<code>{}</code>)\\n'.format(total)
+    message = 'Ladrismo — unicum rubati (<code>{}</code>)\n'.format(total)
     if not results:
-        return message + '\\nAncora nessun furto: che gruppo di onesti (o di scarsi).'
+        return message + '\nAncora nessun furto: che gruppo di onesti (o di scarsi).'
 
     rank_width = len(str(len(results)))
     name_width = max(len(player) for player, _ in results)
     count_width = max(len(str(count)) for _, count in results)
     for rank, (player, count) in enumerate(results, 1):
-        message += '\\n<code>{:>{}}) {:<{}} {:>{}}</code>'.format(
+        message += '\n<code>{:>{}}) {:<{}} {:>{}}</code>'.format(
             rank, rank_width, html.escape(player), name_width, count, count_width
         )
     return message
