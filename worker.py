@@ -1992,9 +1992,9 @@ def LadronePlayer(player, db_path):
         by_owner.setdefault(owner, []).append(pokemon)
 
     message = 'Unicum rubati da <b>{}</b>:'.format(html.escape(top_similar))
-    for owner, pokemon in by_owner.items():
-        message += '\n\n<b>{}</b>: {}'.format(
-            html.escape(owner), ', '.join(html.escape(mon) for mon in pokemon)
+    for owner, pokemon in sorted(by_owner.items(), key=lambda item: (-len(item[1]), item[0].casefold())):
+        message += '\n\n<b>{} ({})</b>: {}'.format(
+            html.escape(owner), len(pokemon), ', '.join(html.escape(mon) for mon in pokemon)
         )
     return message
 
