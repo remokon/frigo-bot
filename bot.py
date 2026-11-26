@@ -708,6 +708,8 @@ COMMAND_SECTIONS = [
         ("cessi", "animali da sverginare"),
         ("desaparecidos", "animali che non spawnano da più tempo"),
         ("unicums", "classifica vittorie con animali unici"),
+        ("ladrismo", "classifica unicum rubati ad altri giocatori"),
+        ("ladrone &lt;nome&gt;", "lista dei giocatori derubati e dei Pokémon rubati"),
         ("unicum &lt;nome&gt;", "animali unici sverginati da un giocatore"),
         ("sverginate &lt;nome&gt;", "animali sverginati da un giocatore"),
     ]),
@@ -757,6 +759,27 @@ async def unicum_ladder_command(update: Update, context: ContextTypes.DEFAULT_TY
         worker.LadderUnici(path), parse_mode='HTML', reply_markup=ReplyKeyboardRemove()
     )
     return
+
+
+async def ladrismo_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
+    await update.message.reply_text(
+        worker.LadderLadrismo(path), parse_mode='HTML', reply_markup=ReplyKeyboardRemove()
+    )
+    return
+
+
+async def ladrone_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
+    if not context.args:
+        await update.message.reply_text(
+            'e dimmi chi: <code>/ladrone nome</code>',
+            parse_mode='HTML', reply_markup=ReplyKeyboardRemove()
+        )
+        return
+
+    await update.message.reply_text(
+        worker.LadronePlayer(' '.join(context.args), path),
+        parse_mode='HTML', reply_markup=ReplyKeyboardRemove()
+    )
 
 
 async def sverginate_player_command(update: Update, context: ContextTypes.DEFAULT_TYPE, path):
@@ -959,6 +982,8 @@ def start_bot(token, db_path):
     c_comandi = CommandHandler("comandi", comandi_command)
 
     c_uni_lad = CommandHandler("unicums", partial(unicum_ladder_command, path=db_path))
+    c_ladrismo = CommandHandler("ladrismo", partial(ladrismo_command, path=db_path))
+    c_ladrone = CommandHandler("ladrone", partial(ladrone_command, path=db_path))
     c_uni_pl = CommandHandler("unicum", partial(unicum_player_command, path=db_path))
     c_sverginate = CommandHandler("sverginate", partial(sverginate_player_command, path=db_path))
 
@@ -1020,6 +1045,8 @@ def start_bot(token, db_path):
     application.add_handler(c_calc)
     application.add_handler(c_comandi)
     application.add_handler(c_uni_lad)
+    application.add_handler(c_ladrismo)
+    application.add_handler(c_ladrone)
     application.add_handler(c_uni_pl)
     application.add_handler(c_sverginate)
     application.add_handler(c_cessi)

@@ -1967,6 +1967,58 @@ def closeWeek(db_path):
     return message
 
 
+def LadronePlayer(player, db_path):
+    conn = db.openDbConn(db_path)
+    players = db.getAllPlayers(conn)
+    top_similar = None
+    top_similarity = 0
+    for known_player in players:
+        ratio = difflib.SequenceMatcher(a=player.lower(), b=known_player.lower()).ratio()
+        if ratio > 0.7 and ratio > top_similarity:
+            top_similar = known_player
+            top_similarity = ratio
+
+    if not top_similar:
+        db.closeDbConn(conn)
+        return 'non conosco questo {}'.format(html.escape(player))
+
+    stolen = db.getStolenUnicumsByPlayer(conn, top_similar)
+    db.closeDbConn(conn)
+    if not stolen:
+        return '{} non ha rubato nessun unicum, per ora'.format(html.escape(top_similar))
+
+    by_owner = {}
+    for owner, pokemon in stolen:
+        by_owner.setdefault(owner, []).append(pokemon)
+
+    message = 'Unicum rubati da <b>{}</b>:'.format(html.escape(top_similar))
+    for owner, pokemon in by_owner.items():
+        message += '\\n\\n<b>{}</b>: {}'.format(
+            html.escape(owner), ', '.join(html.escape(mon) for mon in pokemon)
+        )
+    return message
+
+
+def LadderLadrismo(db_path):
+    conn = db.openDbConn(db_path)
+    results = db.getStolenUnicumCounts(conn)
+    db.closeDbConn(conn)
+
+    total = sum(count for _, count in results)
+    message = 'Ladrismo — unicum rubati (<code>{}</code>)\\n'.format(total)
+    if not results:
+        return message + '\\nAncora nessun furto: che gruppo di onesti (o di scarsi).'
+
+    rank_width = len(str(len(results)))
+    name_width = max(len(player) for player, _ in results)
+    count_width = max(len(str(count)) for _, count in results)
+    for rank, (player, count) in enumerate(results, 1):
+        message += '\\n<code>{:>{}}) {:<{}} {:>{}}</code>'.format(
+            rank, rank_width, html.escape(player), name_width, count, count_width
+        )
+    return message
+
+
 def LadderUnici(db_path):
     c = db.openDbConn(db_path)
 

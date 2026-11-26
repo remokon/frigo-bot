@@ -1231,6 +1231,59 @@ def getPokemonWinningPlayers(conn, pokemon):
     return [row[0] for row in cur.fetchall()]
 
 
+def getStolenUnicumsByPlayer(conn, player):
+    """Return (former_owner, Pokémon) pairs stolen by player in chronological order."""
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT original.winner, f.pokewinner
+        FROM frigos f
+        JOIN frigos original ON original.pokewinner=f.pokewinner
+        WHERE f.winner=?
+          AND original.progr=(
+              SELECT MIN(first.progr)
+              FROM frigos first
+              WHERE first.pokewinner=f.pokewinner AND first.progr < f.progr
+          )
+          AND (
+              SELECT COUNT(DISTINCT prior.winner)
+              FROM frigos prior
+              WHERE prior.pokewinner=f.pokewinner AND prior.progr < f.progr
+          )=1
+          AND original.winner != f.winner
+        ORDER BY f.progr
+    ''', (player,))
+    return cur.fetchall()
+
+
+def getStolenUnicumCounts(conn):
+    """Count wins where a Pokémon had exactly one prior winning player,
+    and the winner is someone other than that original owner.
+
+    Unicum status is evaluated immediately before each frigo, so later wins
+    by additional players do not erase an earlier theft.
+    """
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT f.winner, COUNT(*) AS steals
+        FROM frigos f
+        WHERE (
+            SELECT COUNT(DISTINCT prior.winner)
+            FROM frigos prior
+            WHERE prior.pokewinner=f.pokewinner AND prior.progr < f.progr
+        ) = 1
+          AND f.winner != (
+            SELECT prior.winner
+            FROM frigos prior
+            WHERE prior.pokewinner=f.pokewinner AND prior.progr < f.progr
+            ORDER BY prior.progr
+            LIMIT 1
+        )
+        GROUP BY f.winner
+        ORDER BY steals DESC, f.winner COLLATE NOCASE
+    ''')
+    return cur.fetchall()
+
+
 def UnicumLadder(conn):
     query = '''select * from (
     select winner,count(*)as c from (
