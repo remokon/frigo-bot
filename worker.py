@@ -1999,6 +1999,39 @@ def LadronePlayer(player, db_path):
     return message
 
 
+def LadratoPlayer(player, db_path):
+    """List a player's Pokémon that were once unicum and who stole each one."""
+    conn = db.openDbConn(db_path)
+    players = db.getAllPlayers(conn)
+    top_similar = None
+    top_similarity = 0
+    for known_player in players:
+        ratio = difflib.SequenceMatcher(a=player.lower(), b=known_player.lower()).ratio()
+        if ratio > 0.7 and ratio > top_similarity:
+            top_similar = known_player
+            top_similarity = ratio
+
+    if not top_similar:
+        db.closeDbConn(conn)
+        return 'non conosco questo {}'.format(html.escape(player))
+
+    stolen = db.getStolenUnicumsByPlayer(conn, top_similar)
+    db.closeDbConn(conn)
+    if not stolen:
+        return '{} non gli hanno ancora rubato nessun unicum'.format(html.escape(top_similar))
+
+    by_thief = {}
+    for thief, pokemon in stolen:
+        by_thief.setdefault(thief, []).append(pokemon)
+
+    message = 'Unicum rubati a <b>{}</b>:'.format(html.escape(top_similar))
+    for thief, pokemon in sorted(by_thief.items(), key=lambda item: (-len(item[1]), item[0].casefold())):
+        message += '\n\n<b>{} ({})</b>: {}'.format(
+            html.escape(thief), len(pokemon), ', '.join(html.escape(mon) for mon in pokemon)
+        )
+    return message
+
+
 def LadderLadrismo(db_path):
     conn = db.openDbConn(db_path)
     results = db.getStolenUnicumCounts(conn)
